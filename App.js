@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, Image } from "react-native";
 import { createAppContainer } from "react-navigation";
 import { createBottomTabNavigator } from "react-navigation-tabs";
 import BookTransaction from "./Screens/BookTransaction";
@@ -18,18 +18,42 @@ export default class App extends React.Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "center",
   },
 });
 
-const Tab = createBottomTabNavigator({
-  Transaction: {
-    screen: BookTransaction,
+const Tab = createBottomTabNavigator(
+  {
+    Transaction: {
+      screen: BookTransaction,
+    },
+    Search: {
+      screen: Search,
+    },
   },
-  Search: {
-    screen: Search,
-  },
-});
+
+  {
+    defaultNavigationOptions: ({ navigation }) => ({
+      tabBarIcon: () => {
+        const routeName = navigation.state.routeName;
+        if (routeName === "Transaction") {
+          return (
+            <Image
+              source={require("./assets/book.png")}
+              style={{ width: 30, height: 30 }}
+            />
+          );
+        } else if (routeName === "Search") {
+          return (
+            <Image
+              source={require("./assets/searchingbook.png")}
+              style={{ width: 30, height: 30 }}
+            />
+          );
+        }
+      },
+    }),
+  }
+);
 
 const AppContainer = createAppContainer(Tab);
