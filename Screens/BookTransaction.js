@@ -23,8 +23,6 @@ export default class TransactionScreen extends React.Component {
       scannedStudentID: "",
       buttonState: "normal",
       transactionMessage: "",
-      enterBookID: "",
-      enterSchoolID: "",
     };
   }
 
@@ -58,28 +56,6 @@ export default class TransactionScreen extends React.Component {
     }
   };
 
-  handleTransaction = async () => {
-    var TransactionMessage;
-    db.collection("Books")
-      .doc(this.state.scannedBookID)
-      .get()
-      .then((doc) => {
-        console.log(doc.data());
-        var book = doc.data();
-        if (book.BookAvailabilty) {
-          this.initiateBookIssue;
-          TransactionMessage = "Book Issued";
-          alert(TransactionMessage);
-        } else {
-          this.initiateBookReturn;
-          TransactionMessage = "Book Returned";
-          alert(TransactionMessage);
-        }
-      });
-
-    this.setState({ transactionMessage: TransactionMessage });
-  };
-
   initiateBookIssue = async () => {
     db.collection("Transaction").add({
       StudentID: this.state.scannedStudentID,
@@ -87,6 +63,7 @@ export default class TransactionScreen extends React.Component {
       Date: firebase.firestore.Timestamp.now().toDate(),
       TransactionType: "Issued",
     });
+    console.log(this.state.scannedBookID);
 
     db.collection("Books").doc(this.state.scannedBookID).update({
       BookAvailability: false,
@@ -126,6 +103,101 @@ export default class TransactionScreen extends React.Component {
       scannedStudentID: "",
       scannedBookID: "",
     });
+  };
+
+  handleTransaction = async () => {
+    var transactionType = await this.checkBookAvailibilty();
+    console.log(transactionType);
+    if (!transactionType) {
+      alert("The Book Is Not in The Library");
+      this.setState({ scannedBookID: "", scannedStudentID: "" });
+    } else if (transactionType === "Issue") {
+      var isStudentEligible = await this.checkStundentEligibilityIssue();
+      if (isStudentEligible) {
+        this.initiateBookIssue();
+        alert("The Book Has Been Issued To The Student.");
+      }
+    } else {
+      var isStudentEligible = await this.checkStundentEligibilityReturn();
+      if (isStudentEligible) {
+        this.initiateBookReturn();
+        alert("The Book Has Been Returned By The Student.");
+      }
+    }
+  };
+
+  checkBookAvailibilty = async () => {
+    const bookRef = await db
+      .collection("Books")
+      .where("BookID", "==", this.state.scannedBookID)
+      .get();
+
+    var transactionType = "";
+    if (bookRef.docs.length == 0) {
+      transactionType = "false";
+      console.log(bookRef.docs.length);
+    } else {
+      bookRef.docs.map((doc) => {
+        var book = doc.data();
+        if (book.BookAvailability) {
+          transactionType = "Issue";
+        } else {
+          transactionType = "Return";
+        }
+      });
+    }
+    return transactionType;
+  };
+
+  checkStundentEligibilityIssue = async () => {
+    const studentRef = await db
+      .collection("Students")
+      .where("StudentID", "==", this.state.scannedStudentID)
+      .get();
+
+    var isStudentEligible = "";
+    if (studentRef.docs.length == 0) {
+      isStudentEligible = false;
+      this.setState({ scannedBookID: "", scannedStudentID: "" });
+      alert("This is not an existing Student ID");
+    } else {
+      studentRef.docs.map((doc) => {
+        var student = doc.data();
+
+        if (student.IssuedBooks < 2) {
+          isStudentEligible = true;
+        } else {
+          isStudentEligible = false;
+          alert("The Student has already Issued 2 Books.");
+          this.setState({ scannedBookID: "", scannedStudentID: "" });
+        }
+      });
+    }
+    return isStudentEligible;
+  };
+
+  checkStundentEligibilityReturn = async () => {
+    const transactionRef = await db
+      .collection("Transactions")
+      .where("BookID", "==", this.state.scannedBookID)
+      .limit(1)
+      .get();
+
+    var isStudentEligible = "";
+
+    transactionRef.docs.map((doc) => {
+      var lastBookTransaction = doc.data();
+
+      if (lastBookTransaction.StudentID == this.state.scannedStudentID) {
+        isStudentEligible = true;
+      } else {
+        isStudentEligible = false;
+        alert("The Book wasn't Issued To The Student.");
+        this.setState({ scannedBookID: "", scannedStudentID: "" });
+      }
+    });
+
+    return isStudentEligible;
   };
 
   render() {
@@ -177,10 +249,8 @@ export default class TransactionScreen extends React.Component {
                 placeholder="Book ID"
                 id="bookId"
                 style={styles.textInput}
-                onChangeText={(text) => {
-                  this.setState({ enterBookID: text });
-                }}
-                value={(this.state.scannedBookID, this.state.enterBookID)}
+                onChangeText={(text) => this.setState({ scannedBookID: text })}
+                value={this.state.scannedBookID}
               ></TextInput>
 
               <TouchableOpacity
@@ -198,10 +268,10 @@ export default class TransactionScreen extends React.Component {
                 placeholder="Student ID"
                 id="studentId"
                 style={styles.textInput}
-                onChangeText={(text) => {
-                  this.setState({ enterSchoolID: text });
-                }}
-                value={(this.state.scannedSchoolID, this.state.enterStudentID)}
+                onChangeText={(text) =>
+                  this.setState({ scannedStudentID: text })
+                }
+                value={this.state.scannedStudentID}
               ></TextInput>
 
               <TouchableOpacity
@@ -215,7 +285,10 @@ export default class TransactionScreen extends React.Component {
             </View>
 
             <TouchableOpacity
-              onPress={this.handleTransaction}
+              onPress={async () => {
+                var transactionMessage = await this.handleTransaction();
+                this.setState({ scannedBookID: "", scannedStudentID: "" });
+              }}
               style={styles.submitButton}
             >
               <Text style={styles.buttonText}>SUBMIT</Text>

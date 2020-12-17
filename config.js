@@ -1,9 +1,10 @@
 import firebase from "firebase";
 require("@firebase/firestore");
 
-const firebaseConfig = {
+var firebaseConfig = {
   apiKey: "AIzaSyAZvYuW2w-fE4BfPK3mHCmlRwZCXMAEUKY",
   authDomain: "willy-9f30d.firebaseapp.com",
+  databaseURL: "https://willy-9f30d-default-rtdb.firebaseio.com",
   projectId: "willy-9f30d",
   storageBucket: "willy-9f30d.appspot.com",
   messagingSenderId: "743889576792",
