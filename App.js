@@ -1,9 +1,10 @@
 import React from "react";
 import { StyleSheet, Text, View, Image } from "react-native";
-import { createAppContainer } from "react-navigation";
+import { createAppContainer, createSwitchNavigator } from "react-navigation";
 import { createBottomTabNavigator } from "react-navigation-tabs";
 import BookTransaction from "./Screens/BookTransaction";
 import Search from "./Screens/Search";
+import LoginScreen from "./Screens/Login";
 
 export default class App extends React.Component {
   render() {
@@ -19,6 +20,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
+    backgroundColor: "rgb(0,0,50)",
   },
 });
 
@@ -56,4 +58,13 @@ const Tab = createBottomTabNavigator(
   }
 );
 
-const AppContainer = createAppContainer(Tab);
+const screen = createSwitchNavigator({
+  LoginScreen: {
+    screen: LoginScreen,
+  },
+  Tab: {
+    screen: Tab,
+  },
+});
+
+const AppContainer = createAppContainer(screen);
